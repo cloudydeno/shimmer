@@ -3,7 +3,7 @@
 var tap = require('tap')
 var test = tap.test
 var sinon = require('sinon')
-var shimmer = require('../index.js')
+var shimmer = require('../index.ts')
 
 var outsider = 0
 function counter () { return ++outsider }

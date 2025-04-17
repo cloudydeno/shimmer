@@ -1,38 +1,14 @@
-[![Build Status](https://travis-ci.org/othiym23/shimmer.svg)](https://travis-ci.org/othiym23/shimmer)
-[![Coverage Status](https://coveralls.io/repos/othiym23/shimmer/badge.svg?branch=master)](https://coveralls.io/r/othiym23/shimmer?branch=master)
+## Safer monkeypatching for ~~Node.js~~ Deno
 
-## Safer monkeypatching for Node.js
-
-`shimmer` does a bunch of the work necessary to wrap other methods in
-a wrapper you provide:
-
-```javascript
-var http = require('http');
-var shimmer = require('shimmer');
-
-shimmer.wrap(http, 'request', function (original) {
-  return function () {
-    console.log("Starting request!");
-    var returned = original.apply(this, arguments)
-    console.log("Done setting up request -- OH YEAH!");
-    return returned;
-  };
-});
-```
-
-### Mandatory disclaimer
-
-There are times when it's necessary to monkeypatch default behavior in
-JavaScript and Node. However, changing the behavior of the runtime on the fly
-is rarely a good idea, and you should be using this module because you need to,
-not because it seems like fun.
+Typescript port of `shimmer` package from NPM.
+Published on JSR for usage in modern runtimes e.g. Deno.
 
 ### API
 
 All monkeypatched functions have an attribute, `__wrapped`, set to true on
 them.
 
-#### shimmer(options)
+#### shimmer.init(options)
 
 If you pass in an options object containing a function labeled `logger`,
 `shimmer` will use it instead of the logger, which defaults to `console.error`.

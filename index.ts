@@ -1,16 +1,22 @@
-'use strict'
+type Funktion = ((...args: unknown[]) => unknown) & {
+  __unwrap?: () => void;
+  __wrapped?: true;
+  __original?: Funktion;
+} & Record<string,unknown>;
+type Nodule = Record<string,Funktion>;
+type WrapperFunktion = (original: Funktion, name: string) => Funktion;
 
-function isFunction (funktion) {
+function isFunction (funktion: unknown) {
   return typeof funktion === 'function'
 }
 
 // Default to complaining loudly when things don't go according to plan.
-var logger = console.error.bind(console)
+let logger = console.error.bind(console)
 
 // Sets a property on an object, preserving its enumerability.
 // This function assumes that the property is already writable.
-function defineProperty (obj, name, value) {
-  var enumerable = !!obj[name] && obj.propertyIsEnumerable(name)
+function defineProperty (obj: Record<string,unknown>, name: string, value: unknown) {
+  const enumerable = !!obj[name] && Object.propertyIsEnumerable.call(obj, name)
   Object.defineProperty(obj, name, {
     configurable: true,
     enumerable: enumerable,
@@ -20,14 +26,16 @@ function defineProperty (obj, name, value) {
 }
 
 // Keep initialization idempotent.
-function shimmer (options) {
+export function init (options?: {
+  logger?: () => void;
+}): void {
   if (options && options.logger) {
     if (!isFunction(options.logger)) logger("new logger isn't a function, not replacing")
     else logger = options.logger
   }
 }
 
-function wrap (nodule, name, wrapper) {
+export function wrap (nodule: Nodule, name: string, wrapper: WrapperFunktion): Funktion | undefined {
   if (!nodule || !nodule[name]) {
     logger('no original function ' + name + ' to wrap')
     return
@@ -44,8 +52,8 @@ function wrap (nodule, name, wrapper) {
     return
   }
 
-  var original = nodule[name]
-  var wrapped = wrapper(original, name)
+  const original = nodule[name] as Funktion;
+  const wrapped = wrapper(original, name)
 
   defineProperty(wrapped, '__original', original)
   defineProperty(wrapped, '__unwrap', function () {
@@ -57,7 +65,7 @@ function wrap (nodule, name, wrapper) {
   return wrapped
 }
 
-function massWrap (nodules, names, wrapper) {
+export function massWrap (nodules: Nodule | Nodule[], names: string[], wrapper: WrapperFunktion): void {
   if (!nodules) {
     logger('must provide one or more modules to patch')
     logger((new Error()).stack)
@@ -71,14 +79,14 @@ function massWrap (nodules, names, wrapper) {
     return
   }
 
-  nodules.forEach(function (nodule) {
+  nodules.forEach(function (nodule: Nodule) {
     names.forEach(function (name) {
       wrap(nodule, name, wrapper)
     })
   })
 }
 
-function unwrap (nodule, name) {
+export function unwrap (nodule: Nodule, name: string): void {
   if (!nodule || !nodule[name]) {
     logger('no function to unwrap.')
     logger((new Error()).stack)
@@ -92,7 +100,7 @@ function unwrap (nodule, name) {
   }
 }
 
-function massUnwrap (nodules, names) {
+export function massUnwrap (nodules: Nodule | Nodule[], names: string[]): void {
   if (!nodules) {
     logger('must provide one or more modules to patch')
     logger((new Error()).stack)
@@ -112,10 +120,3 @@ function massUnwrap (nodules, names) {
     })
   })
 }
-
-shimmer.wrap = wrap
-shimmer.massWrap = massWrap
-shimmer.unwrap = unwrap
-shimmer.massUnwrap = massUnwrap
-
-module.exports = shimmer
